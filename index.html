@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teste de Soma</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .success {
+      color: green;
+    }
+    .fail {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Teste da função soma</h1>
+  <div id="resultado"></div>
+
+  <script>
+
+    function soma(a, b) {
+      return a + b;
+    }
+
+    function testSoma() {
+      const resultadoDiv = document.getElementById('resultado');
+      const esperado = 5;
+      const obtido = soma(2, 3);
+
+      if (obtido === esperado) {
+        resultadoDiv.innerHTML = `<p class="success">Teste passou! soma(2, 3) retornou ${obtido}</p>`;
+      } else {
+        resultadoDiv.innerHTML = `<p class="fail">Teste falhou! Esperado ${esperado}, mas obteve ${obtido}</p>`;
+      }
+    }
+
+    window.onload = testSoma;
+  </script>
+</body>
+</html>
