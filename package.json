@@ -1,0 +1,23 @@
+{
+  "name": "pipeline_structure",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VitorBZS/PipeLine_Structure.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VitorBZS/PipeLine_Structure/issues"
+  },
+  "homepage": "https://github.com/VitorBZS/PipeLine_Structure#readme",
+  "devDependencies": {
+    "jest": "^30.0.5"
+  }
+}
