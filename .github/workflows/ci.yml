@@ -1,70 +1,26 @@
-name: Deploy to Production (register to Sleuth)
+name: Node.js CI
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
-
-concurrency:
-  group: prod-${{ github.ref }}
-  cancel-in-progress: false
-
-permissions:
-  contents: read
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Checkout (full history for metrics)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
+    steps:
+      - name: Clonar código
+        uses: actions/checkout@v3
+
+      - name: Instalar Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Instalar dependências
+        run: npm install
 
-      - name: Run tests
+      - name: Rodar testes
         run: npm test
-
-      # Opcional: build, se aplicável
-      - name: Build (if you have build step)
-        if: ${{ always() }}
-        run: |
-          if [ -f package.json ] && jq -e '.scripts.build' package.json >/dev/null 2>&1; then
-            npm run build
-          else
-            echo "No build script found -- skipping build"
-          fi
-
-      # --- DEPLOY (substitua por seu deploy real) ---
-      - name: Make deploy script executable
-        run: |
-          if [ -f ./deploy.sh ]; then chmod +x ./deploy.sh; fi
-
-      - name: Deploy
-        id: deploy
-        run: |
-          if [ -f ./deploy.sh ]; then
-            ./deploy.sh
-          else
-            echo "No deploy.sh found — simulating successful deploy"
-            # Simulação com sleep para parecer real
-            sleep 1
-          fi
-
-      # --- NOTIFY SLEUTH ---
-      - name: Notify Sleuth
-        if: ${{ success() && steps.deploy.outcome == 'success' }}
-        uses: sleuth-io/sleuth-github-action@v1
-        with:
-          api_key: ${{ secrets.SLEUTH_API_KEY }}
-          environment: production
-          revision: ${{ github.sha }}
-          repo: ${{ github.repository }}
