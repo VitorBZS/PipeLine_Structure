@@ -1,4 +1,4 @@
-name: Node.js CI
+name: CI + Deploy
 
 on:
   push:
@@ -6,13 +6,21 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: prod-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # ----------------------
+  # Job de build/teste (roda em PRs e pushes)
+  # ----------------------
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Clonar código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # importante se for usar métricas de lead time
 
       - name: Instalar Node.js
         uses: actions/setup-node@v4
@@ -20,7 +28,64 @@ jobs:
           node-version: '18'
 
       - name: Instalar dependências
-        run: npm install
+        run: npm ci
 
       - name: Rodar testes
         run: npm test
+
+  # ----------------------
+  # Job de deploy (só roda em push na main, nunca em PR)
+  # ----------------------
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Clonar código (histórico completo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (opcional)
+        run: |
+          if [ -f package.json ] && jq -e '.scripts.build' package.json >/dev/null 2>&1; then
+            npm run build
+          else
+            echo "Nenhum script build definido"
+          fi
+
+      - name: Deploy
+        id: deploy
+        run: |
+          if [ -f ./deploy.sh ]; then
+            chmod +x ./deploy.sh
+            ./deploy.sh
+          else
+            echo "Simulando deploy bem-sucedido"
+            sleep 1
+          fi
+
+      # --- NOTIFICA SLEUTH (via API, já que não há action oficial) ---
+      - name: Notify Sleuth
+        if: ${{ success() && steps.deploy.outcome == 'success' }}
+        env:
+          SLEUTH_API_KEY: ${{ secrets.SLEUTH_API_KEY }}
+        run: |
+          curl -X POST https://api.sleuth.io/deployments \
+            -H "Authorization: Bearer ${SLEUTH_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{
+                  \"environment\": \"production\",
+                  \"revision\": \"${GITHUB_SHA}\",
+                  \"repository\": \"${GITHUB_REPOSITORY}\",
+                  \"deployed_at\": \"$(date --iso-8601=seconds)\"
+                }"
