@@ -80,7 +80,7 @@ jobs:
         uses: sleuth-io/sleuth-action@main
         with:
           organization-slug: fatec    # 🔑 Substitua
-          deployment-slug: fatec-app         # 🔑 Substitua
+          deployment-slug: pipeline_structure   # 🔑 Substitua
           api-key: ${{ secrets.SLEUTH_API_KEY }}
           sha: ${{ github.sha }}
           environment: production
