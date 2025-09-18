@@ -79,10 +79,11 @@ jobs:
         if: ${{ success() && steps.deploy.outcome == 'success' }}
         uses: sleuth-io/sleuth-action@main
         with:
-          api_key: ${{ secrets.SLEUTH_API_KEY }}
+          organization-slug: fatec    # 🔑 Substitua
+          deployment-slug: deployments         # 🔑 Substitua
+          api-key: ${{ secrets.SLEUTH_API_KEY }}
+          sha: ${{ github.sha }}
           environment: production
-          revision: ${{ github.sha }}
-          repo: ${{ github.repository }}
 
 
           
