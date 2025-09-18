@@ -1,15 +1,26 @@
-name: Node.js CI
+name: CI + Deploy
 
 on:
+  # dispara o build e o deploy quando houver push ou PR na main
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # permite rodar o deploy manualmente se precisar
+  workflow_dispatch:
+
+# evita dois deploys concorrentes para o mesmo ambiente
+concurrency:
+  group: prod-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
+  # -------- JOB 1: Build/Test Node.js --------
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Clonar código
         uses: actions/checkout@v3
@@ -24,3 +35,44 @@ jobs:
 
       - name: Rodar testes
         run: npm test
+
+  # -------- JOB 2: Deploy .NET + Sleuth --------
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    # só roda o deploy se o build passar E se for push na main (não em PR)
+    needs: build
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout (histórico completo p/ métricas)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'   # ajuste para a versão do seu projeto
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Make deploy script executable
+        run: chmod +x ./deploy.sh
+
+      - name: Deploy
+        id: deploy
+        run: ./deploy.sh
+
+      - name: Notify Sleuth
+        if: ${{ success() && steps.deploy.outcome == 'success' }}
+        uses: sleuth-io/sleuth-action@v1
+        with:
+          api_key: ${{ secrets.SLEUTH_API_KEY }}
+          environment: production
